@@ -960,7 +960,14 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'planner' | 'catalog'>('planner');
   
   // Catalog State
-  const [catalog, setCatalog] = useState<ProductionStep[]>(INITIAL_CATALOG);
+  const [catalog, setCatalog] = useState<ProductionStep[]>(() => {
+    try {
+      const saved = localStorage.getItem('catalog');
+      return saved ? JSON.parse(saved) : INITIAL_CATALOG;
+    } catch {
+      return INITIAL_CATALOG;
+    }
+  });
   const [catalogSearch, setCatalogSearch] = useState('');
   const [editingCatalogStep, setEditingCatalogStep] = useState<ProductionStep | null>(null);
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
@@ -971,25 +978,174 @@ export default function App() {
   const [catFormMinutes, setCatFormMinutes] = useState(0);
 
   // Planner State
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>(() => {
+    try {
+      const saved = localStorage.getItem('products');
+      if (saved) {
+        const parsed = JSON.parse(saved) as Product[];
+        return INITIAL_PRODUCTS.map(p => {
+          const savedP = parsed?.find(sp => sp.id === p.id);
+          return savedP ? { ...p, steps: savedP.steps } : p;
+        });
+      }
+      return INITIAL_PRODUCTS;
+    } catch {
+      return INITIAL_PRODUCTS;
+    }
+  });
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('selectedProductId') || null;
+    } catch {
+      return null;
+    }
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [editingSteps, setEditingSteps] = useState<ProductionStep[]>([]);
   const [showAddStepModal, setShowAddStepModal] = useState(false);
-  const [plannerStartTime, setPlannerStartTime] = useState<Date>(new Date());
-  const [isImplant, setIsImplant] = useState(false);
-  const [isVerblendet, setIsVerblendet] = useState(false);
-  const [isModellguss, setIsModellguss] = useState(false);
-  const [totalProtheseOption, setTotalProtheseOption] = useState<'loeffel' | 'loeffel-biss' | 'anprobe' | 'umstellung' | 'um-fertigstellung' | 'fertigstellung'>('loeffel');
-  const [telescopeOption, setTelescopeOption] = useState<'loeffel' | 'loeffel-biss' | 'primaerteile' | 'biss-stuetzstift' | 'gesamtanprobe' | 'umstellung' | 'um-fertigstellung' | 'fertigstellung'>('primaerteile');
-  const [stegOption, setStegOption] = useState<'loeffel' | 'loeffel-biss' | 'biss-stuetzstift' | 'aesthetikanprobe' | 'steg-uebertrag' | 'steg-mg-uebertrag' | 'fertigstellung'>('loeffel');
+  const [plannerStartTime, setPlannerStartTime] = useState<Date>(() => {
+    try {
+      const saved = localStorage.getItem('plannerStartTime');
+      return saved ? new Date(saved) : new Date();
+    } catch {
+      return new Date();
+    }
+  });
+  const [isImplant, setIsImplant] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('isImplant') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isVerblendet, setIsVerblendet] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('isVerblendet') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isModellguss, setIsModellguss] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('isModellguss') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [totalProtheseOption, setTotalProtheseOption] = useState<'loeffel' | 'loeffel-biss' | 'anprobe' | 'umstellung' | 'um-fertigstellung' | 'fertigstellung'>(() => {
+    try {
+      return (localStorage.getItem('totalProtheseOption') as any) || 'loeffel';
+    } catch {
+      return 'loeffel';
+    }
+  });
+  const [telescopeOption, setTelescopeOption] = useState<'loeffel' | 'loeffel-biss' | 'primaerteile' | 'biss-stuetzstift' | 'gesamtanprobe' | 'umstellung' | 'um-fertigstellung' | 'fertigstellung'>(() => {
+    try {
+      return (localStorage.getItem('telescopeOption') as any) || 'primaerteile';
+    } catch {
+      return 'primaerteile';
+    }
+  });
+  const [stegOption, setStegOption] = useState<'loeffel' | 'loeffel-biss' | 'biss-stuetzstift' | 'aesthetikanprobe' | 'steg-uebertrag' | 'steg-mg-uebertrag' | 'fertigstellung'>(() => {
+    try {
+      return (localStorage.getItem('stegOption') as any) || 'loeffel';
+    } catch {
+      return 'loeffel';
+    }
+  });
+
+  // LocalStorage Synchronisation Effects
+  useEffect(() => {
+    try {
+      localStorage.setItem('activeTab', activeTab);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [activeTab]);
 
   useEffect(() => {
-    setIsEditing(false);
-    setIsImplant(false);
-    setIsModellguss(false);
-    setStegOption('loeffel');
+    try {
+      localStorage.setItem('catalog', JSON.stringify(catalog));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [catalog]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('products', JSON.stringify(products));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [products]);
+
+  useEffect(() => {
+    try {
+      if (selectedProductId) {
+        localStorage.setItem('selectedProductId', selectedProductId);
+      } else {
+        localStorage.removeItem('selectedProductId');
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }, [selectedProductId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('plannerStartTime', plannerStartTime.toISOString());
+    } catch (e) {
+      console.error(e);
+    }
+  }, [plannerStartTime]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('isImplant', String(isImplant));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [isImplant]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('isVerblendet', String(isVerblendet));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [isVerblendet]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('isModellguss', String(isModellguss));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [isModellguss]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('totalProtheseOption', totalProtheseOption);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [totalProtheseOption]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('telescopeOption', telescopeOption);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [telescopeOption]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('stegOption', stegOption);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [stegOption]);
 
   const selectedProduct = useMemo(() => 
     products.find(p => p.id === selectedProductId), 
@@ -1523,6 +1679,7 @@ export default function App() {
         stepsToSchedule = [
           catalog.find(s => s.id === 's6')!,
           catalog.find(s => s.id === 's7')!,
+          { id: 'pt-gefr-basis', name: 'Gefräste Basis', duration: 1440, category: 'machine' as const, description: 'Gefräste Basis (1 Tag)' },
           catalog.find(s => s.id === 'c1')!
         ].filter(Boolean);
       } else if (totalProtheseOption === 'umstellung') {
@@ -1759,6 +1916,7 @@ export default function App() {
         steps = [
           catalog.find(s => s.id === 's6')!,
           catalog.find(s => s.id === 's7')!,
+          { id: 'pt-gefr-basis', name: 'Gefräste Basis', duration: 1440, category: 'machine' as const, description: 'Gefräste Basis (1 Tag)' },
           catalog.find(s => s.id === 'c1')!
         ].filter(Boolean);
       } else if (totalProtheseOption === 'umstellung') {
@@ -1836,16 +1994,23 @@ export default function App() {
       }
     }
     
+    const activeSteps = steps.filter(step => {
+      const isEndCheck = step.id === 'k8' || 
+                          step.id === 'st-f-kontr' || 
+                          step.name.toLowerCase().includes('endkontrolle');
+      return !(isEndCheck && step.duration < 1440);
+    });
+
     // Account for implant steps in duration
     if (isImplant && (selectedProductId === 'krone-standard' || selectedProductId === 'krone-verblendet')) {
       const abutmentStep = catalog.find(s => s.id === 'k6');
       const abutmentFinishStep = catalog.find(s => s.id === 'k7');
       if (abutmentStep && abutmentFinishStep) {
-        return steps.reduce((acc, step) => acc + step.duration, 0) + abutmentStep.duration + abutmentFinishStep.duration;
+        return activeSteps.reduce((acc, step) => acc + step.duration, 0) + abutmentStep.duration + abutmentFinishStep.duration;
       }
     }
     
-    return steps.reduce((acc, step) => acc + step.duration, 0);
+    return activeSteps.reduce((acc, step) => acc + step.duration, 0);
   }, [selectedProduct, isEditing, editingSteps, isImplant, isVerblendet, isModellguss, totalProtheseOption, telescopeOption, stegOption, catalog, selectedProductId, products]);
 
   const deliveryDate = useMemo(() => {
@@ -1873,15 +2038,43 @@ export default function App() {
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans flex flex-col">
       {/* Top Navigation */}
       <nav className="bg-white border-b border-slate-200 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-600 rounded-xl text-white">
-            <Settings2 size={24} />
+        <div className="flex items-center gap-4">
+          {/* KiMMEL ZAHNTECHNIK Logo */}
+          <div className="flex flex-col items-stretch select-none">
+            <div className="flex items-end font-sans font-extrabold text-[28px] leading-none text-[#2d3539] tracking-tight">
+              <span>K</span>
+              <div className="inline-flex flex-col items-center justify-end h-[22px] mx-[1.5px] relative bottom-[1px]">
+                {/* Orange Right-pointing Triangle */}
+                <svg className="w-3.5 h-3.5 text-[#E47225] fill-current transform translate-x-[1.5px] translate-y-[-3px]" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                {/* Lowercase i stem */}
+                <div className="w-[4.5px] h-[10px] bg-[#2d3539] rounded-sm transform translate-y-[-1.5px]"></div>
+              </div>
+              <span className="tracking-tight">MMEL</span>
+            </div>
+            <div className="flex justify-between w-full text-[7px] font-black text-[#E47225] mt-[1.5px] uppercase select-none leading-none">
+              <span>Z</span>
+              <span>A</span>
+              <span>H</span>
+              <span>N</span>
+              <span>T</span>
+              <span>E</span>
+              <span>C</span>
+              <span>H</span>
+              <span>N</span>
+              <span>I</span>
+              <span>K</span>
+            </div>
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 hidden md:block">
-            Zahntechnik <span className="text-blue-600">Planer</span>
-          </h1>
+
+          <div className="h-8 w-[1px] bg-slate-200 hidden md:block"></div>
+
+          <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg hidden md:block uppercase tracking-wider">
+            Planungs-Tool
+          </span>
         </div>
-        <div className="flex bg-slate-100 p-1 rounded-xl">
+        <div className="hidden bg-slate-100 p-1 rounded-xl">
           <button
             onClick={() => setActiveTab('planner')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
@@ -1920,7 +2113,18 @@ export default function App() {
                   {products.map((product) => (
                     <button
                       key={product.id}
-                      onClick={() => setSelectedProductId(product.id)}
+                      onClick={() => {
+                        if (selectedProductId !== product.id) {
+                          setIsEditing(false);
+                          setIsImplant(false);
+                          setIsVerblendet(false);
+                          setIsModellguss(false);
+                          setTotalProtheseOption('loeffel');
+                          setTelescopeOption('primaerteile');
+                          setStegOption('loeffel');
+                        }
+                        setSelectedProductId(product.id);
+                      }}
                       className={`
                         group relative flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 text-left
                         ${selectedProductId === product.id 
@@ -1965,10 +2169,7 @@ export default function App() {
                       {/* Global Settings Badge */}
                       <div className="flex flex-col gap-3 mb-6">
                         <div className="flex flex-wrap items-center gap-3">
-                          <div className="flex items-center gap-2 text-sm text-slate-600 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm w-fit">
-                            <Clock size={16} className="text-blue-500" />
-                            <span>Arbeitszeiten: <strong>Mo-Do 08:00-17:00, Fr 08:00-14:00</strong></span>
-                          </div>
+
                           <div className="flex items-center gap-2 text-sm text-slate-600 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm w-fit">
                             <Calendar size={16} className="text-blue-500" />
                             <label className="font-medium">Auftragsstart:</label>
@@ -2502,7 +2703,7 @@ export default function App() {
                         <div className="bg-slate-100/50 rounded-2xl p-4 flex items-start gap-3 mt-8">
                           <Info size={18} className="text-slate-400 mt-0.5 shrink-0" />
                           <p className="text-xs text-slate-500 italic">
-                            Hinweis: Die berechneten Zeiten überspringen automatisch Wochenenden. Freitags endet die Arbeitszeit um 14:00 Uhr.
+                            Hinweis: Die berechneten Zeiten überspringen automatisch arbeitsfreie Tage und Wochenenden.
                           </p>
                         </div>
                       )}
@@ -2749,7 +2950,7 @@ export default function App() {
                     </div>
                   </div>
                   <p className="text-xs text-slate-500 mt-3 italic">
-                    Hinweis: 1 Tag entspricht 24 Stunden. In der Ablaufplanung wird diese Zeit automatisch auf die Arbeitszeiten (8-17 Uhr) verteilt.
+                    Hinweis: 1 Tag entspricht 24 Stunden.
                   </p>
                 </div>
               </div>
