@@ -2662,16 +2662,51 @@ export default function App() {
           scheduledAufstellung,
         ];
       } else if (totalProtheseOption === "loeffel") {
+        const baseModell = catalog.find((s) => s.id === "s6") || {
+          id: "s6",
+          name: "Modell",
+          duration: 1440,
+          category: "manual" as const,
+          description: "Herstellung des Arbeitsmodells.",
+        };
+        const baseLoeffel = catalog.find((s) => s.id === "p8") || {
+          id: "p8",
+          name: "Löffel",
+          duration: 2880,
+          category: "manual" as const,
+          description: "Herstellung des individuellen Löffels.",
+        };
         stepsToSchedule = [
-          catalog.find((s) => s.id === "s6")!,
-          catalog.find((s) => s.id === "p8")!,
-        ].filter(Boolean);
+          { ...baseModell, duration: 1440, description: "Modellherstellung (1 Tag)" },
+          { ...baseLoeffel, duration: 2880, description: "Löffelherstellung (2 Tage)" },
+        ];
       } else if (totalProtheseOption === "loeffel-biss") {
+        const baseModell = catalog.find((s) => s.id === "s6") || {
+          id: "s6",
+          name: "Modell",
+          duration: 1440,
+          category: "manual" as const,
+          description: "Herstellung des Arbeitsmodells.",
+        };
+        const baseLoeffel = catalog.find((s) => s.id === "p8") || {
+          id: "p8",
+          name: "Löffel",
+          duration: 2880,
+          category: "manual" as const,
+          description: "Herstellung des individuellen Löffels.",
+        };
+        const baseBiss = catalog.find((s) => s.id === "p9") || {
+          id: "p9",
+          name: "Bissnahme",
+          duration: 1440,
+          category: "manual" as const,
+          description: "Herstellung der Bissschablone.",
+        };
         stepsToSchedule = [
-          catalog.find((s) => s.id === "s6")!,
-          catalog.find((s) => s.id === "p8")!,
-          catalog.find((s) => s.id === "p9")!,
-        ].filter(Boolean);
+          { ...baseModell, duration: 1440, description: "Modellherstellung (1 Tag)" },
+          { ...baseLoeffel, duration: 2880, description: "Löffelherstellung (2 Tage)" },
+          { ...baseBiss, duration: 1440, description: "Bissnahme (1 Tag)" },
+        ];
       } else if (totalProtheseOption === "anprobe") {
         stepsToSchedule = [
           catalog.find((s) => s.id === "s6")!,
@@ -2700,10 +2735,31 @@ export default function App() {
           catalog.find((s) => s.id === "k8")!,
         ].filter(Boolean);
       } else if (totalProtheseOption === "fertigstellung") {
+        const basePlanung = catalog.find((s) => s.id === "p11") || {
+          id: "p11",
+          name: "ZE Planung",
+          duration: 1440,
+          category: "manual" as const,
+          description: "Planung des Zahnersatzes.",
+        };
+        const baseFertigstellung = catalog.find((s) => s.id === "c2") || {
+          id: "c2",
+          name: "Fertigstellung",
+          duration: 5760,
+          category: "manual" as const,
+          description: "Finale Fertigstellung des Werkstücks.",
+        };
+        const baseEndkontrolle = catalog.find((s) => s.id === "k8") || {
+          id: "k8",
+          name: "Endkontrolle",
+          duration: 60,
+          category: "manual" as const,
+          description: "Abschließende Qualitätskontrolle.",
+        };
         stepsToSchedule = [
-          catalog.find((s) => s.id === "p11")!,
-          catalog.find((s) => s.id === "c2")!,
-          catalog.find((s) => s.id === "k8")!,
+          { ...basePlanung, duration: 1440, description: "ZE Planung (1 Tag)" },
+          { ...baseFertigstellung, duration: 5760, description: "Fertigstellung (4 Tage)" },
+          baseEndkontrolle,
         ].filter(Boolean);
       }
     }
@@ -3366,16 +3422,51 @@ export default function App() {
           },
         ];
       } else if (totalProtheseOption === "loeffel") {
+        const baseModell = catalog.find((s) => s.id === "s6") || {
+          id: "s6",
+          name: "Modell",
+          duration: 1440,
+          category: "manual" as const,
+          description: "Herstellung des Arbeitsmodells.",
+        };
+        const baseLoeffel = catalog.find((s) => s.id === "p8") || {
+          id: "p8",
+          name: "Löffel",
+          duration: 2880,
+          category: "manual" as const,
+          description: "Herstellung des individuellen Löffels.",
+        };
         steps = [
-          catalog.find((s) => s.id === "s6")!,
-          catalog.find((s) => s.id === "p8")!,
-        ].filter(Boolean);
+          { ...baseModell, duration: 1440, description: "Modellherstellung (1 Tag)" },
+          { ...baseLoeffel, duration: 2880, description: "Löffelherstellung (2 Tage)" },
+        ];
       } else if (totalProtheseOption === "loeffel-biss") {
+        const baseModell = catalog.find((s) => s.id === "s6") || {
+          id: "s6",
+          name: "Modell",
+          duration: 1440,
+          category: "manual" as const,
+          description: "Herstellung des Arbeitsmodells.",
+        };
+        const baseLoeffel = catalog.find((s) => s.id === "p8") || {
+          id: "p8",
+          name: "Löffel",
+          duration: 2880,
+          category: "manual" as const,
+          description: "Herstellung des individuellen Löffels.",
+        };
+        const baseBiss = catalog.find((s) => s.id === "p9") || {
+          id: "p9",
+          name: "Bissnahme",
+          duration: 1440,
+          category: "manual" as const,
+          description: "Herstellung der Bissschablone.",
+        };
         steps = [
-          catalog.find((s) => s.id === "s6")!,
-          catalog.find((s) => s.id === "p8")!,
-          catalog.find((s) => s.id === "p9")!,
-        ].filter(Boolean);
+          { ...baseModell, duration: 1440, description: "Modellherstellung (1 Tag)" },
+          { ...baseLoeffel, duration: 2880, description: "Löffelherstellung (2 Tage)" },
+          { ...baseBiss, duration: 1440, description: "Bissnahme (1 Tag)" },
+        ];
       } else if (totalProtheseOption === "anprobe") {
         steps = [
           catalog.find((s) => s.id === "s6")!,
@@ -3404,10 +3495,31 @@ export default function App() {
           catalog.find((s) => s.id === "k8")!,
         ].filter(Boolean);
       } else if (totalProtheseOption === "fertigstellung") {
+        const basePlanung = catalog.find((s) => s.id === "p11") || {
+          id: "p11",
+          name: "ZE Planung",
+          duration: 1440,
+          category: "manual" as const,
+          description: "Planung des Zahnersatzes.",
+        };
+        const baseFertigstellung = catalog.find((s) => s.id === "c2") || {
+          id: "c2",
+          name: "Fertigstellung",
+          duration: 5760,
+          category: "manual" as const,
+          description: "Finale Fertigstellung des Werkstücks.",
+        };
+        const baseEndkontrolle = catalog.find((s) => s.id === "k8") || {
+          id: "k8",
+          name: "Endkontrolle",
+          duration: 60,
+          category: "manual" as const,
+          description: "Abschließende Qualitätskontrolle.",
+        };
         steps = [
-          catalog.find((s) => s.id === "p11")!,
-          catalog.find((s) => s.id === "c2")!,
-          catalog.find((s) => s.id === "k8")!,
+          { ...basePlanung, duration: 1440, description: "ZE Planung (1 Tag)" },
+          { ...baseFertigstellung, duration: 5760, description: "Fertigstellung (4 Tage)" },
+          baseEndkontrolle,
         ].filter(Boolean);
       }
     }
