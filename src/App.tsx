@@ -24,6 +24,7 @@ import {
   ArrowDown,
   Hash,
   Truck,
+  AlertTriangle,
 } from "lucide-react";
 
 interface ProductionStep {
@@ -1255,6 +1256,68 @@ const INITIAL_CATALOG: ProductionStep[] = Array.from(
 
 const INITIAL_PRODUCTS: Product[] = [
   {
+    id: "reparatur-kunststoff",
+    name: "Reparatur im Kunststoffbereich",
+    icon: "🔧",
+    steps: [
+      {
+        id: "rep-k-model",
+        stepNumber: 1,
+        name: "Modell",
+        duration: 60,
+        category: "manual",
+        description: "Modelle für Reparatur im Kunststoffbereich herstellen (1 Std)",
+      },
+      {
+        id: "rep-k-work",
+        stepNumber: 2,
+        name: "Reparatur (Bruch)",
+        duration: 180,
+        category: "manual",
+        description: "Bruch reparieren (3 Std)",
+      },
+      {
+        id: "rep-k-endkontrolle",
+        stepNumber: 3,
+        name: "Endkontrolle",
+        duration: 30,
+        category: "manual",
+        description: "Qualitätskontrolle (30 Min)",
+      },
+    ],
+  },
+  {
+    id: "reparatur-metall",
+    name: "Reparatur im Metallbereich",
+    icon: "🛠️",
+    steps: [
+      {
+        id: "rep-m-modell",
+        stepNumber: 1,
+        name: "Modell",
+        duration: 60,
+        category: "manual",
+        description: "Modelle herstellen (1 Std)",
+      },
+      {
+        id: "rep-m-laser",
+        stepNumber: 2,
+        name: "Bruch MG",
+        duration: 600,
+        category: "manual",
+        description: "Bruch MG reparieren (10 Std)",
+      },
+      {
+        id: "rep-m-endkontrolle",
+        stepNumber: 3,
+        name: "Endkontrolle",
+        duration: 30,
+        category: "manual",
+        description: "Qualitätskontrolle (30 Min)",
+      },
+    ],
+  },
+  {
     id: "krone-standard",
     name: "Kronen/Brücken (glasiert/bemalt)",
     icon: "🦷",
@@ -1449,6 +1512,7 @@ function addWorkingTime(
   startDate: Date,
   durationMinutes: number,
   stepName?: string,
+  isReparatur?: boolean,
 ): { start: Date; end: Date } {
   let current = new Date(startDate);
 
@@ -1467,7 +1531,7 @@ function addWorkingTime(
 
   if (daysToAdd > 0) {
     let actualDaysToAdvance =
-      current.getHours() < 12 ? daysToAdd - 1 : daysToAdd;
+      isReparatur ? daysToAdd - 1 : (current.getHours() < 12 ? daysToAdd - 1 : daysToAdd);
 
     for (let i = 0; i < actualDaysToAdvance; i++) {
       current.setDate(current.getDate() + 1);
@@ -1575,14 +1639,8 @@ export default function App() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingSteps, setEditingSteps] = useState<ProductionStep[]>([]);
   const [showAddStepModal, setShowAddStepModal] = useState(false);
-  const [plannerStartTime, setPlannerStartTime] = useState<Date>(() => {
-    try {
-      const saved = localStorage.getItem("plannerStartTime");
-      return saved ? new Date(saved) : new Date();
-    } catch {
-      return new Date();
-    }
-  });
+  const [plannerStartTime, setPlannerStartTime] = useState<Date>(() => new Date());
+  const [isStartTimeManuallyChanged, setIsStartTimeManuallyChanged] = useState<boolean>(false);
   const [isImplant, setIsImplant] = useState<boolean>(() => {
     try {
       return localStorage.getItem("isImplant") === "true";
@@ -1650,6 +1708,35 @@ export default function App() {
     }
   });
 
+  const [kunststoffReparaturOption, setKunststoffReparaturOption] = useState<
+    | "bruch"
+    | "sprung"
+    | "unterfutterung"
+    | "1zahn"
+    | "mehrere-zaehne"
+    | "klammer"
+    | "1-2-verblendungen"
+    | "mehrere-verblendungen"
+  >(() => {
+    try {
+      return (localStorage.getItem("kunststoffReparaturOption") as any) || "bruch";
+    } catch {
+      return "bruch";
+    }
+  });
+
+  const [metallReparaturOption, setMetallReparaturOption] = useState<
+    | "bruch-mg"
+    | "erweiterung-mg"
+    | "gegossene-klammer"
+  >(() => {
+    try {
+      return (localStorage.getItem("metallReparaturOption") as any) || "bruch-mg";
+    } catch {
+      return "bruch-mg";
+    }
+  });
+
   // LocalStorage Synchronisation Effects
   useEffect(() => {
     try {
@@ -1687,13 +1774,7 @@ export default function App() {
     }
   }, [selectedProductId]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem("plannerStartTime", plannerStartTime.toISOString());
-    } catch (e) {
-      console.error(e);
-    }
-  }, [plannerStartTime]);
+
 
   useEffect(() => {
     try {
@@ -1742,6 +1823,42 @@ export default function App() {
       console.error(e);
     }
   }, [stegOption]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("kunststoffReparaturOption", kunststoffReparaturOption);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [kunststoffReparaturOption]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("metallReparaturOption", metallReparaturOption);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [metallReparaturOption]);
+
+  // Live ticking clock for plannerStartTime when automatic mode is on
+  useEffect(() => {
+    if (isStartTimeManuallyChanged) return;
+    
+    // Set to now immediately
+    setPlannerStartTime(new Date());
+
+    const interval = setInterval(() => {
+      setPlannerStartTime(new Date());
+    }, 15000); // refresh every 15 seconds
+
+    return () => clearInterval(interval);
+  }, [isStartTimeManuallyChanged]);
+
+  // Reset manual start time and reactivate automatic mode (live system time) when selected product changes
+  useEffect(() => {
+    setIsStartTimeManuallyChanged(false);
+    setPlannerStartTime(new Date());
+  }, [selectedProductId]);
 
   const selectedProduct = useMemo(
     () => products.find((p) => p.id === selectedProductId),
@@ -1937,6 +2054,106 @@ export default function App() {
       if (targetProduct) {
         stepsToSchedule = targetProduct.steps;
       }
+    }
+
+    // Handle dynamic steps for Reparatur im Kunststoffbereich
+    if (!isEditing && selectedProductId === "reparatur-kunststoff") {
+      const modelStep = {
+        id: "rep-k-model",
+        name: "Modell",
+        duration: 60,
+        category: "manual" as const,
+        description: "Modelle für Reparatur im Kunststoffbereich herstellen (1 Std)",
+      };
+      
+      let workStepName = "Reparatur (Bruch)";
+      let workStepDuration = 180;
+      let workStepDesc = "Bruch reparieren (3 Std)";
+      
+      if (kunststoffReparaturOption === "sprung") {
+        workStepName = "Reparatur (Sprung)";
+        workStepDuration = 180;
+        workStepDesc = "Sprung herrichten (3 Std)";
+      } else if (kunststoffReparaturOption === "unterfutterung") {
+        workStepName = "Unterfütterung";
+        workStepDuration = 180;
+        workStepDesc = "Unterfütterung (3 Std)";
+      } else if (kunststoffReparaturOption === "1zahn") {
+        workStepName = "1 Zahn erweitern";
+        workStepDuration = 180;
+        workStepDesc = "1 Zahn erweitern (3 Std)";
+      } else if (kunststoffReparaturOption === "mehrere-zaehne") {
+        workStepName = "Mehrere Zähne erweitern";
+        workStepDuration = 480; // 8 Std.
+        workStepDesc = "Mehrere Zähne erweitern (8 Std)";
+      } else if (kunststoffReparaturOption === "klammer") {
+        workStepName = "Gebogene Klammer biegen & einsetzen";
+        workStepDuration = 180;
+        workStepDesc = "Gebogene Klammer herstellen (3 Std)";
+      } else if (kunststoffReparaturOption === "1-2-verblendungen") {
+        workStepName = "Reparatur 1-2 KST-Verblendungen";
+        workStepDuration = 180;
+        workStepDesc = "1-2 KST-Verblendungen reparieren (3 Std)";
+      } else if (kunststoffReparaturOption === "mehrere-verblendungen") {
+        workStepName = "Reparatur mehrere KST-Verblendungen";
+        workStepDuration = 480; // 8 Std.
+        workStepDesc = "Mehrere KST-Verblendungen reparieren (8 Std)";
+      }
+
+      const repairStep = {
+        id: "rep-k-work",
+        name: workStepName,
+        duration: workStepDuration,
+        category: "manual" as const,
+        description: workStepDesc
+      };
+
+      const finalCheck = {
+        id: "rep-k-endkontrolle",
+        name: "Endkontrolle",
+        duration: 30,
+        category: "manual" as const,
+        description: "Qualitätskontrolle (30 Min)"
+      };
+
+      stepsToSchedule = [modelStep, repairStep, finalCheck];
+    }
+
+    // Handle dynamic steps for Reparatur im Metallbereich
+    if (!isEditing && selectedProductId === "reparatur-metall") {
+      let metalRepairName = "Bruch MG";
+      let metalRepairDesc = "Bruch MG reparieren (10 Std)";
+      if (metallReparaturOption === "erweiterung-mg") {
+        metalRepairName = "Erweiterung MG";
+        metalRepairDesc = "Erweiterung MG herstellen (10 Std)";
+      } else if (metallReparaturOption === "gegossene-klammer") {
+        metalRepairName = "gegossene Klammer";
+        metalRepairDesc = "Gegossene Klammer anfertigen (10 Std)";
+      }
+
+      stepsToSchedule = [
+        {
+          id: "rep-m-modell",
+          name: "Modell",
+          duration: 60,
+          category: "manual" as const,
+          description: "Modelle herstellen (1 Std)",
+        },
+        {
+          id: "rep-m-laser",
+          name: metalRepairName,
+          duration: 600,
+          category: "manual" as const,
+          description: metalRepairDesc,
+        },
+        {
+          id: "rep-m-endkontrolle",
+          name: "Endkontrolle",
+          duration: 30,
+          category: "manual" as const,
+          description: "Qualitätskontrolle (30 Min)",
+        }
+      ];
     }
 
     // Handle dynamic steps for Teleskopierende Prothese
@@ -3317,11 +3534,14 @@ export default function App() {
 
     let currentStartTime = new Date(plannerStartTime);
 
+    const isReparaturMode = selectedProductId === "reparatur-kunststoff" || selectedProductId === "reparatur-metall";
+
     return stepsToSchedule.map((step) => {
       const { start, end } = addWorkingTime(
         currentStartTime,
         step.duration,
         step.name,
+        isReparaturMode,
       );
       currentStartTime = new Date(end);
 
@@ -3342,6 +3562,7 @@ export default function App() {
     totalProtheseOption,
     telescopeOption,
     stegOption,
+    kunststoffReparaturOption,
     catalog,
     selectedProductId,
     products,
@@ -3360,6 +3581,106 @@ export default function App() {
       if (targetProduct) {
         steps = targetProduct.steps;
       }
+    }
+
+    // Handle dynamic steps for Reparatur im Kunststoffbereich
+    if (!isEditing && selectedProductId === "reparatur-kunststoff") {
+      const modelStep = {
+        id: "rep-k-model",
+        name: "Modell",
+        duration: 60,
+        category: "manual" as const,
+        description: "Modelle für Reparatur im Kunststoffbereich herstellen (1 Std)",
+      };
+      
+      let workStepName = "Reparatur (Bruch)";
+      let workStepDuration = 180;
+      let workStepDesc = "Bruch reparieren (3 Std)";
+      
+      if (kunststoffReparaturOption === "sprung") {
+        workStepName = "Reparatur (Sprung)";
+        workStepDuration = 180;
+        workStepDesc = "Sprung herrichten (3 Std)";
+      } else if (kunststoffReparaturOption === "unterfutterung") {
+        workStepName = "Unterfütterung";
+        workStepDuration = 180;
+        workStepDesc = "Unterfütterung (3 Std)";
+      } else if (kunststoffReparaturOption === "1zahn") {
+        workStepName = "1 Zahn erweitern";
+        workStepDuration = 180;
+        workStepDesc = "1 Zahn erweitern (3 Std)";
+      } else if (kunststoffReparaturOption === "mehrere-zaehne") {
+        workStepName = "Mehrere Zähne erweitern";
+        workStepDuration = 480; // 8 Std.
+        workStepDesc = "Mehrere Zähne erweitern (8 Std)";
+      } else if (kunststoffReparaturOption === "klammer") {
+        workStepName = "Gebogene Klammer biegen & einsetzen";
+        workStepDuration = 180;
+        workStepDesc = "Gebogene Klammer herstellen (3 Std)";
+      } else if (kunststoffReparaturOption === "1-2-verblendungen") {
+        workStepName = "Reparatur 1-2 KST-Verblendungen";
+        workStepDuration = 180;
+        workStepDesc = "1-2 KST-Verblendungen reparieren (3 Std)";
+      } else if (kunststoffReparaturOption === "mehrere-verblendungen") {
+        workStepName = "Reparatur mehrere KST-Verblendungen";
+        workStepDuration = 480; // 8 Std.
+        workStepDesc = "Mehrere KST-Verblendungen reparieren (8 Std)";
+      }
+
+      const repairStep = {
+        id: "rep-k-work",
+        name: workStepName,
+        duration: workStepDuration,
+        category: "manual" as const,
+        description: workStepDesc
+      };
+
+      const finalCheck = {
+        id: "rep-k-endkontrolle",
+        name: "Endkontrolle",
+        duration: 30,
+        category: "manual" as const,
+        description: "Qualitätskontrolle (30 Min)"
+      };
+
+      steps = [modelStep, repairStep, finalCheck];
+    }
+
+    // Handle dynamic steps for Reparatur im Metallbereich
+    if (!isEditing && selectedProductId === "reparatur-metall") {
+      let metalRepairName = "Bruch MG";
+      let metalRepairDesc = "Bruch MG reparieren (10 Std)";
+      if (metallReparaturOption === "erweiterung-mg") {
+        metalRepairName = "Erweiterung MG";
+        metalRepairDesc = "Erweiterung MG herstellen (10 Std)";
+      } else if (metallReparaturOption === "gegossene-klammer") {
+        metalRepairName = "gegossene Klammer";
+        metalRepairDesc = "Gegossene Klammer anfertigen (10 Std)";
+      }
+
+      steps = [
+        {
+          id: "rep-m-modell",
+          name: "Modell",
+          duration: 60,
+          category: "manual" as const,
+          description: "Modelle herstellen (1 Std)",
+        },
+        {
+          id: "rep-m-laser",
+          name: metalRepairName,
+          duration: 600,
+          category: "manual" as const,
+          description: metalRepairDesc,
+        },
+        {
+          id: "rep-m-endkontrolle",
+          name: "Endkontrolle",
+          duration: 30,
+          category: "manual" as const,
+          description: "Qualitätskontrolle (30 Min)",
+        }
+      ];
     }
 
     // Handle dynamic steps for Teleskopierende Prothese
@@ -3768,6 +4089,7 @@ export default function App() {
     totalProtheseOption,
     telescopeOption,
     stegOption,
+    kunststoffReparaturOption,
     catalog,
     selectedProductId,
     products,
@@ -3775,14 +4097,78 @@ export default function App() {
 
   const deliveryDate = useMemo(() => {
     if (scheduledSteps.length === 0) return null;
+
+    if (selectedProductId === "reparatur-kunststoff") {
+      let checkDay = new Date(plannerStartTime);
+      if (!isWorkingDay(checkDay)) {
+        checkDay = advanceToNextWorkingDay(checkDay);
+        checkDay.setHours(8, 0, 0, 0);
+      }
+
+      const isFriday = checkDay.getDay() === 5;
+      const hours = checkDay.getHours();
+      const minutes = checkDay.getMinutes();
+      let targetDeliveryDay = new Date(checkDay);
+
+      if (kunststoffReparaturOption === "mehrere-zaehne" || kunststoffReparaturOption === "mehrere-verblendungen") {
+        const isBefore1030 = hours < 10 || (hours === 10 && minutes <= 30);
+        if (isBefore1030) {
+          targetDeliveryDay = advanceToNextWorkingDay(targetDeliveryDay);
+        } else {
+          targetDeliveryDay = advanceToNextWorkingDay(advanceToNextWorkingDay(targetDeliveryDay));
+        }
+        if (targetDeliveryDay.getDay() === 5) {
+          targetDeliveryDay.setHours(14, 0, 0, 0);
+        } else {
+          targetDeliveryDay.setHours(16, 30, 0, 0);
+        }
+        return targetDeliveryDay;
+      } else {
+        if (isFriday) {
+          const isBefore10 = hours < 10 || (hours === 10 && minutes === 0);
+          if (isBefore10) {
+            targetDeliveryDay.setHours(14, 0, 0, 0);
+            return targetDeliveryDay;
+          } else {
+            targetDeliveryDay = advanceToNextWorkingDay(targetDeliveryDay);
+            targetDeliveryDay.setHours(16, 30, 0, 0);
+            return targetDeliveryDay;
+          }
+        } else {
+          const isBefore1030 = hours < 10 || (hours === 10 && minutes <= 30);
+          if (isBefore1030) {
+            targetDeliveryDay.setHours(16, 30, 0, 0);
+            return targetDeliveryDay;
+          } else {
+            targetDeliveryDay = advanceToNextWorkingDay(targetDeliveryDay);
+            if (targetDeliveryDay.getDay() === 5) {
+              targetDeliveryDay.setHours(14, 0, 0, 0);
+            } else {
+              targetDeliveryDay.setHours(16, 30, 0, 0);
+            }
+            return targetDeliveryDay;
+          }
+        }
+      }
+    }
+
     let maxEndDate = scheduledSteps[0].endDate;
     for (const step of scheduledSteps) {
       if (step.endDate.getTime() > maxEndDate.getTime()) {
         maxEndDate = step.endDate;
       }
     }
+    if (selectedProductId === "reparatur-metall") {
+      const targetDeliveryDay = new Date(maxEndDate);
+      if (targetDeliveryDay.getDay() === 5) {
+        targetDeliveryDay.setHours(14, 30, 0, 0);
+      } else {
+        targetDeliveryDay.setHours(16, 30, 0, 0);
+      }
+      return targetDeliveryDay;
+    }
     return advanceToNextWorkingDay(maxEndDate);
-  }, [scheduledSteps]);
+  }, [scheduledSteps, selectedProductId, plannerStartTime]);
 
   const formatDuration = (minutes: number) => {
     if (minutes === 0) return "0 Min.";
@@ -3888,6 +4274,10 @@ export default function App() {
                           setTotalProtheseOption("loeffel");
                           setTelescopeOption("primaerteile");
                           setStegOption("loeffel");
+                          setKunststoffReparaturOption("bruch");
+                        }
+                        if (!isStartTimeManuallyChanged) {
+                          setPlannerStartTime(new Date());
                         }
                         setSelectedProductId(product.id);
                       }}
@@ -3936,38 +4326,70 @@ export default function App() {
                       exit={{ opacity: 0, y: -20 }}
                       className="space-y-6"
                     >
-                      {/* Global Settings Badge */}
-                      <div className="flex flex-col gap-3 mb-6">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <div className="flex items-center gap-2 text-sm text-slate-600 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm w-fit">
-                            <Calendar size={16} className="text-blue-500" />
-                            <label className="font-medium">
-                              Auftragsstart:
-                            </label>
-                            <input
-                              type="datetime-local"
-                              value={formatDateForInput(plannerStartTime)}
-                              onChange={(e) => {
-                                const newDate = new Date(e.target.value);
-                                if (!isNaN(newDate.getTime()))
-                                  setPlannerStartTime(newDate);
-                              }}
-                              className="bg-slate-50 border border-slate-200 rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-                          {deliveryDate && (
-                            <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-200 shadow-sm w-fit">
-                              <Truck size={16} className="text-emerald-500" />
-                              <label className="font-medium">
-                                Lieferung möglich ab:
-                              </label>
-                              <span className="font-bold">
-                                {formatDisplayDate(deliveryDate)}{" "}
-                                {formatDisplayTime(deliveryDate)} Uhr
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                       {/* Global Settings Badge */}
+                       <div className="flex flex-col gap-3 mb-6">
+                         <div className="flex flex-wrap items-center gap-3">
+                           <div className="flex flex-col gap-1.5 mr-auto">
+                             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600 bg-white px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm w-fit">
+                               <Calendar size={16} className="text-blue-500" />
+                               <label className="font-medium">
+                                 Auftragsstart:
+                               </label>
+                               <input
+                                 type="datetime-local"
+                                 value={formatDateForInput(plannerStartTime)}
+                                 onChange={(e) => {
+                                   const newDate = new Date(e.target.value);
+                                   if (!isNaN(newDate.getTime())) {
+                                     setPlannerStartTime(newDate);
+                                     setIsStartTimeManuallyChanged(true);
+                                   }
+                                 }}
+                                 className="bg-slate-50 border border-slate-200 rounded-md px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500 font-sans text-xs"
+                               />
+                               {isStartTimeManuallyChanged ? (
+                                 <button
+                                   onClick={() => {
+                                     setIsStartTimeManuallyChanged(false);
+                                     setPlannerStartTime(new Date());
+                                   }}
+                                   title="Zurück zur live mitlaufenden aktuellen Systemzeit wechseln"
+                                   className="flex items-center gap-1.5 ml-1 px-2.5 py-1 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 font-semibold rounded-md transition-colors border border-amber-200 cursor-pointer"
+                                 >
+                                   <Clock size={12} className="animate-spin-slow text-amber-600" />
+                                   Aktuelle Zeit laden
+                                 </button>
+                               ) : (
+                                 <span className="flex items-center gap-1.5 ml-1 px-2 py-1 text-xs text-emerald-700 bg-emerald-50 font-medium rounded-md border border-emerald-100">
+                                   <span className="relative flex h-2 w-2">
+                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                   </span>
+                                   Systemzeit live
+                                 </span>
+                               )}
+                             </div>
+                             <span className="text-[11px] text-slate-400 px-1 flex items-center gap-1">
+                               <span>🚀</span> <strong>Vollautomatische Berechnung aktiv:</strong> Alle Schritte werden live berechnet.
+                             </span>
+                           </div>
+                           {deliveryDate && (
+                             <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-100 shadow-sm w-fit self-start mt-0.5">
+                               <Truck size={16} className="text-emerald-500" />
+                               <label className="font-medium">
+                                 Lieferung möglich ab:
+                               </label>
+                               <span className="font-bold text-emerald-800">
+                                 {formatDisplayDate(deliveryDate)}{" "}
+                                 {selectedProductId === "reparatur-kunststoff"
+                                   ? (deliveryDate.getDay() === 5 ? "14:00 - 14:30 Uhr" : "16:30 - 17:00 Uhr")
+                                   : selectedProductId === "reparatur-metall"
+                                   ? (deliveryDate.getDay() === 5 ? "14:30 - 15:00 Uhr" : "16:30 - 17:00 Uhr")
+                                   : `${formatDisplayTime(deliveryDate)} Uhr`}
+                               </span>
+                             </div>
+                           )}
+                         </div>
 
                         {(selectedProductId === "krone-standard" ||
                           selectedProductId === "krone-verblendet") && (
@@ -3999,6 +4421,146 @@ export default function App() {
                                   }`}
                                 >
                                   Nein
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedProductId === "reparatur-kunststoff" && (
+                          <div className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-blue-100 shadow-sm w-fit">
+                            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                              <Info size={20} />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-slate-700">
+                                Reparaturart im Kunststoffbereich:
+                              </span>
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                <button
+                                  onClick={() => setKunststoffReparaturOption("bruch")}
+                                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    kunststoffReparaturOption === "bruch"
+                                      ? "bg-blue-600 text-white shadow-md"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  Bruch
+                                </button>
+                                <button
+                                  onClick={() => setKunststoffReparaturOption("sprung")}
+                                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    kunststoffReparaturOption === "sprung"
+                                      ? "bg-blue-600 text-white shadow-md"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  Sprung
+                                </button>
+                                <button
+                                  onClick={() => setKunststoffReparaturOption("unterfutterung")}
+                                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    kunststoffReparaturOption === "unterfutterung"
+                                      ? "bg-blue-600 text-white shadow-md"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  Unterfütterung
+                                </button>
+                                <button
+                                  onClick={() => setKunststoffReparaturOption("1zahn")}
+                                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    kunststoffReparaturOption === "1zahn"
+                                      ? "bg-blue-600 text-white shadow-md"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  1 Zahn erweitern
+                                </button>
+                                <button
+                                  onClick={() => setKunststoffReparaturOption("mehrere-zaehne")}
+                                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    kunststoffReparaturOption === "mehrere-zaehne"
+                                      ? "bg-blue-600 text-white shadow-md"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  Mehrere Zähne erweitern
+                                </button>
+                                <button
+                                  onClick={() => setKunststoffReparaturOption("klammer")}
+                                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    kunststoffReparaturOption === "klammer"
+                                      ? "bg-blue-600 text-white shadow-md"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  Gebogene Klammer
+                                </button>
+                                <button
+                                  onClick={() => setKunststoffReparaturOption("1-2-verblendungen")}
+                                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    kunststoffReparaturOption === "1-2-verblendungen"
+                                      ? "bg-blue-600 text-white shadow-md"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  Reparatur 1-2 KST-Verblendungen
+                                </button>
+                                <button
+                                  onClick={() => setKunststoffReparaturOption("mehrere-verblendungen")}
+                                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    kunststoffReparaturOption === "mehrere-verblendungen"
+                                      ? "bg-blue-600 text-white shadow-md"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  Reparatur mehrere KST-Verblendungen
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedProductId === "reparatur-metall" && (
+                          <div className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-blue-100 shadow-sm w-fit">
+                            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                              <Info size={20} />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-slate-700">
+                                Reparaturart im Metallbereich:
+                              </span>
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                <button
+                                  onClick={() => setMetallReparaturOption("bruch-mg")}
+                                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    metallReparaturOption === "bruch-mg"
+                                      ? "bg-blue-600 text-white shadow-md"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  Bruch MG
+                                </button>
+                                <button
+                                  onClick={() => setMetallReparaturOption("erweiterung-mg")}
+                                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    metallReparaturOption === "erweiterung-mg"
+                                      ? "bg-blue-600 text-white shadow-md"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  Erweiterung MG
+                                </button>
+                                <button
+                                  onClick={() => setMetallReparaturOption("gegossene-klammer")}
+                                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    metallReparaturOption === "gegossene-klammer"
+                                      ? "bg-blue-600 text-white shadow-md"
+                                      : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  gegossene Klammer
                                 </button>
                               </div>
                             </div>
@@ -4369,12 +4931,78 @@ export default function App() {
                           </div>
                         )}
 
-                        <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                          <div className="text-xs text-slate-500 bg-blue-50/50 border border-blue-100 rounded-xl px-4 py-2 w-fit">
-                            <strong>Tages-Regel:</strong> Schritte in "Tagen"
-                            enden am Folgetag (wenn Start &lt; 12 Uhr) oder am
-                            übernächsten Tag (wenn Start &ge; 12 Uhr).
+                        {selectedProductId === "reparatur-kunststoff" && (
+                          <div className="bg-amber-50/90 border-2 border-amber-200 rounded-3xl p-6 text-slate-700 shadow-sm flex flex-col gap-4">
+                            <div className="flex items-start gap-4">
+                              <div className="p-3 bg-amber-100/80 rounded-2xl text-amber-700 block shrink-0">
+                                <Info size={24} />
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <span className="text-sm font-semibold text-amber-800 uppercase tracking-wider font-mono">
+                                  Reparatur-Regeln
+                                </span>
+                                <div className="bg-red-50 border border-red-200 text-red-850 rounded-xl p-3.5 flex items-start gap-2.5 my-2">
+                                  <AlertTriangle size={18} className="text-red-600 shrink-0 mt-0.5" />
+                                  <span className="text-xs font-bold text-red-700 leading-normal">
+                                    Aufwendige große Reparaturen grundsätzlich nur nach tel. Rücksprache. Dauer bis zu 4 Tage.
+                                  </span>
+                                </div>
+                                <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                                  <strong>Sehr geehrtes Praxisteam,</strong>
+                                  {"\n\n"}
+                                  bitte beachten Sie, dass es je nach aktueller Laborauslastung bei Reparaturen zu Verzögerungen oder Terminverlängerungen kommen kann.
+                                  {"\n\n"}
+                                  <strong>Wichtiger Hinweis:</strong>
+                                  {"\n"}
+                                  Reparaturen, die noch am selben Tag fertiggestellt werden sollen, müssen bis spätestens <strong>10:30 Uhr</strong> in unserer Zentrale eintreffen, damit wir die Termine einhalten können.
+                                  {"\n\n"}
+                                  Vielen Dank für Ihr Verständnis und Ihre Unterstützung
+                                </div>
+                              </div>
+                            </div>
                           </div>
+                        )}
+
+                        {selectedProductId === "reparatur-metall" && (
+                          <div className="bg-amber-50/90 border-2 border-amber-200 rounded-3xl p-6 text-slate-700 shadow-sm flex flex-col gap-4">
+                            <div className="flex items-start gap-4">
+                              <div className="p-3 bg-amber-100/80 rounded-2xl text-amber-700 block shrink-0">
+                                <Info size={24} />
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <span className="text-sm font-semibold text-amber-800 uppercase tracking-wider font-mono">
+                                  Metall-Reparatur Information
+                                </span>
+                                <div className="bg-red-50 border border-red-200 text-red-850 rounded-xl p-3.5 flex items-start gap-2.5 my-2">
+                                  <AlertTriangle size={18} className="text-red-600 shrink-0 mt-0.5" />
+                                  <span className="text-xs font-bold text-red-700 leading-normal">
+                                    Aufwendige große Reparaturen grundsätzlich nur nach tel. Rücksprache. Dauer bis zu 4 Tage.
+                                  </span>
+                                </div>
+                                <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                                  <strong>Sehr geehrtes Praxisteam,</strong>
+                                  {"\n\n"}
+                                  bitte beachten Sie, dass es je nach aktueller Laborauslastung bei Reparaturen zu Verzögerungen oder Terminverlängerungen kommen kann.
+                                  {"\n\n"}
+                                  <strong>Wichtiger Hinweis:</strong>
+                                  {"\n"}
+                                  Reparaturen, die noch am selben Tag fertiggestellt werden sollen, müssen bis spätestens <strong>10:30 Uhr</strong> in unserer Zentrale eintreffen, damit wir die Termine einhalten können.
+                                  {"\n\n"}
+                                  Vielen Dank für Ihr Verständnis und Ihre Unterstützung
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                          {!(selectedProductId === "reparatur-kunststoff" || selectedProductId === "reparatur-metall") && (
+                            <div className="text-xs text-slate-500 bg-blue-50/50 border border-blue-100 rounded-xl px-4 py-2 w-fit">
+                              <strong>Tages-Regel:</strong> Schritte in "Tagen"
+                              enden am Folgetag (wenn Start &lt; 12 Uhr) oder am
+                              übernächsten Tag (wenn Start &ge; 12 Uhr).
+                            </div>
+                          )}
                           <div className="text-xs text-slate-500 bg-amber-50/50 border border-amber-100 rounded-xl px-4 py-2 w-fit">
                             <strong>Arbeitsfreie Tage:</strong> Wochenenden
                             &amp; gesetzliche Feiertage in Rheinland-Pfalz
