@@ -1,5 +1,9 @@
 # Zahntechnik Fertigungsplaner
 
+**Live-App (nicht die GitHub-Code-Seite):** [https://kimmel1.github.io/Planer/](https://kimmel1.github.io/Planer/)
+
+> Die Repository-URL `https://github.com/kimmel1/Planer` zeigt nur den Quellcode — die App läuft unter dem Link oben.
+
 Web-App zur Planung von Fertigungsabschnitten in der Zahntechnik. Berechnet realistische Zeitpläne unter Berücksichtigung von Arbeitszeiten, Wochenenden und Feiertagen in Rheinland-Pfalz.
 
 ## Funktionen
