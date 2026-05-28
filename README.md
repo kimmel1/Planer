@@ -45,8 +45,8 @@ Web-App zur Planung von Fertigungsabschnitten in der Zahntechnik. Berechnet real
 
 ```bash
 # Repository klonen
-git clone https://github.com/tubackit/zahntechnik-fertigungsplaner.git
-cd zahntechnik-fertigungsplaner
+git clone https://github.com/kimmel1/Planer.git
+cd Planer
 
 # Abhängigkeiten installieren
 npm install
